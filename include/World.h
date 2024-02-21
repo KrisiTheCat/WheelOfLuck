@@ -17,13 +17,20 @@ private:
 	Drawable m_centerCircle;
 	Drawable m_button;
 	Drawable m_buttonText;
+	TTF_Font* font;
 
 	vector<Segment> m_segments;
 	int m_wheelAngle = 0;
 	int m_acceleraction = 0;
 	bool m_peaked;
+	bool m_spinStarted;
+
+	void initEnabledButton();
+	void initDisabledButton();
 
 	void displayDrawable(Drawable drawable);
 	void displaySegment(Segment segment);
+	bool checkCoordsInRect(SDL_Rect rect, int x, int y);
 	SDL_Texture* initTexture(const char* filename);
+
 }; 

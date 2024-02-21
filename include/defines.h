@@ -5,8 +5,8 @@
 
 #include <vector>
 #include <SDL.h>
+#include <SDL_ttf.h>
 using namespace std;
-
 
 struct int2
 {

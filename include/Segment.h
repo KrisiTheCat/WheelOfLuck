@@ -2,11 +2,12 @@
 #include "defines.h"
 class Segment {
 public:
-	Segment(Drawable drawable, int angle, int points);
+	Segment(Drawable, SDL_Texture*, int);
 	~Segment();
 	Drawable getDrawable();
+	SDL_Texture* getDrawableText();
 	int m_angle;
 private:
 	Drawable m_drawable;
-	int m_points;
+	SDL_Texture* m_drawableText;
 };

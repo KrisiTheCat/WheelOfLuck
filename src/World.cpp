@@ -1,6 +1,4 @@
 #include <iostream>
-#include <SDL.h>
-#include <SDL_ttf.h>
 #include "../include/World.h"
 #include <math.h>
 #include <ctime>
@@ -12,16 +10,21 @@ SDL_Window* window;
 SDL_Renderer* renderer;
 
 World::World() {
+	m_spinStarted = false;
 	m_isRunning = true;
+	m_peaked = false;
+	m_acceleraction = 0;
 }
 
 World::~World() {
 	SDL_DestroyTexture(m_button.texture);
+	SDL_DestroyTexture(m_buttonText.texture);
 	SDL_DestroyTexture(m_circleBorder.texture);
 	SDL_DestroyTexture(m_centerCircle.texture);
 	SDL_DestroyTexture(m_topTriangle.texture);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
+	TTF_CloseFont(font);
 	m_circleBorder.texture = NULL;
 	m_centerCircle.texture = NULL;
 	m_topTriangle.texture = NULL;
@@ -57,6 +60,7 @@ void World::init() {
 	}
 	// TTF init
 	TTF_Init();
+	font = TTF_OpenFont("fonts\\anta.ttf", 125);
 
 
 	//init circle border
@@ -81,17 +85,11 @@ void World::init() {
 	m_centerCircle.rect.h = 114;
 
 	//init button
-	m_button.texture = initTexture("img\\button.bmp");
+	initEnabledButton();
 	m_button.rect.x = 139;
 	m_button.rect.y = 660;
 	m_button.rect.w = 382;
 	m_button.rect.h = 150;
-
-	TTF_Font* font = TTF_OpenFont("fonts\\anta.ttf", 125);
-	SDL_Color color = { 160, 160, 160 };
-	SDL_Surface* surface = TTF_RenderText_Solid(font,
-		"SPIN", color);
-	m_buttonText.texture = SDL_CreateTextureFromSurface(renderer, surface);
 	m_buttonText.rect.x = 169;
 	m_buttonText.rect.y = 670;
 	m_buttonText.rect.w = 322;
@@ -104,32 +102,59 @@ void World::init() {
 	segmDrawable.rect.w = 145;
 	segmDrawable.rect.h = 242;
 
+	SDL_Color color = { 255, 255, 255 };
 	for (int i = 0; i < 10; i++) {
-		switch (i % 5) {
-		case 0: segmDrawable.texture = initTexture("img\\dark_blue_segment.bmp"); break;
-		case 1: segmDrawable.texture = initTexture("img\\yellow_segment.bmp"); break;
-		case 2: segmDrawable.texture = initTexture("img\\darkest_segment.bmp"); break;
-		case 3: segmDrawable.texture = initTexture("img\\blue_segment.bmp"); break;
-		case 4: segmDrawable.texture = initTexture("img\\orange_segment.bmp"); break;
+		int pts;
+		switch (i % 2) {
+		case 0: segmDrawable.texture = initTexture("img\\dark_blue_segment2.bmp");	pts = 100;  break;
+		case 2: segmDrawable.texture = initTexture("img\\yellow_segment.bmp");		pts = 200;  break;
+		case 1: segmDrawable.texture = initTexture("img\\darkest_segment2.bmp");		pts = -500; break;
+		case 3: segmDrawable.texture = initTexture("img\\blue_segment.bmp");		pts = 300;  break;
+		case 4: segmDrawable.texture = initTexture("img\\orange_segment.bmp");		pts = 400;  break;
 		}
-		m_segments.push_back(Segment(segmDrawable,i*36,100));
+
+		SDL_Surface* surface = TTF_RenderText_Solid(font,to_string(pts).c_str(), color);
+		SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+		SDL_FreeSurface(surface);
+		m_segments.push_back(Segment(segmDrawable, texture ,i*36));
 
 	}
-	m_peaked = false;
-	m_acceleraction = 0;
+
+
 
 }
 
 //update all things that change from frame to frame
 void World::update() {
-	if (!m_peaked) {
-		if (m_acceleraction >= rand()%50+50) {
-			m_peaked = true;
+	SDL_Event e;
+	while (SDL_PollEvent(&e)) {
+		switch (e.type) {
+		case SDL_MOUSEBUTTONDOWN:
+			int x, y;
+			Uint32 buttons = SDL_GetMouseState(&x, &y);
+			if (checkCoordsInRect(m_button.rect, x, y)) {
+				initDisabledButton();
+				m_spinStarted = true;
+			}
+			break;
+
 		}
-		m_acceleraction+=2;
 	}
-	if(m_peaked && m_acceleraction>0) m_acceleraction--;
-	m_wheelAngle += m_acceleraction;
+	if (m_spinStarted) {
+		if (!m_peaked) {
+			if (m_acceleraction >= rand() % 50 + 50) {
+				m_peaked = true;
+			}
+			m_acceleraction += 2;
+		}
+		if (m_peaked && m_acceleraction > 0) m_acceleraction--;
+		m_wheelAngle += m_acceleraction;
+	}
+}
+
+bool World::checkCoordsInRect(SDL_Rect rect, int x, int y){
+	if (x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h) return true;
+	return false;
 }
 
 bool World::isRunning()
@@ -140,12 +165,12 @@ bool World::isRunning()
 //draw every detail
 void World::draw() {
 	// Clear the window to white
-	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+	SDL_SetRenderDrawColor(renderer, 170, 170, 170, 255);
 	SDL_RenderClear(renderer);
 
 	for (Segment s : m_segments) {
 		displaySegment(s);
-	}
+	} 
 
 	displayDrawable(m_circleBorder);
 	displayDrawable(m_topTriangle);
@@ -166,8 +191,12 @@ void World::displaySegment(Segment segment) {
 	int actualAngle = m_wheelAngle + segment.m_angle;
 	double sinA = sin(actualAngle * PI / 180.0);
 	double cosA = cos(actualAngle * PI / 180.0);
-	rect.x += -rect.w/2+cosA*(rect.w/2) + sinA * rect.h / 2;
-	rect.y += +rect.h/2+sinA*(rect.w/2) - cosA * rect.h / 2;
+	rect.x += -rect.w/2 + sinA * rect.h / 2;
+	rect.y += +rect.h/2 - cosA * rect.h / 2;
+
+	int actualAngle2 = m_wheelAngle + segment.m_angle - 90;
+	SDL_Rect rectText = { rect.x+rect.w/2-40,rect.y + rect.h / 2 - 15,80,30 };
+
 	SDL_RenderCopyEx(renderer,
 		segment.getDrawable().texture,
 		NULL,
@@ -175,6 +204,29 @@ void World::displaySegment(Segment segment) {
 		actualAngle,
 		NULL,
 		SDL_FLIP_NONE);
+	SDL_RenderCopyEx(renderer,
+		segment.getDrawableText(),
+		NULL,
+		&rectText,
+		actualAngle2,
+		NULL,
+		SDL_FLIP_NONE);
+}
+
+void World::initEnabledButton(){
+	m_button.texture = initTexture("img\\en_button.bmp");
+	SDL_Color color = { 255, 223, 143 };
+	SDL_Surface* surface = TTF_RenderText_Solid(font,
+		"SPIN", color);
+	m_buttonText.texture = SDL_CreateTextureFromSurface(renderer, surface);
+}
+
+void World::initDisabledButton(){
+	m_button.texture = initTexture("img\\dis_button.bmp");
+	SDL_Color color = { 170, 170, 170 };
+	SDL_Surface* surface = TTF_RenderText_Solid(font,
+		"...", color);
+	m_buttonText.texture = SDL_CreateTextureFromSurface(renderer, surface);
 }
 
 //getting texture from filename
@@ -182,7 +234,7 @@ SDL_Texture* World::initTexture(const char* filename){
 	SDL_Texture* texture;
 	SDL_Surface* buffer = SDL_LoadBMP(filename);
 	if (!buffer) {
-		cout << "Error loading image test.bmp: " << SDL_GetError() << endl;
+		cout << "Error loading image "<< filename<<".bmp: " << SDL_GetError() << endl;
 		return nullptr;
 	}
 
