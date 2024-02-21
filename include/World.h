@@ -15,6 +15,8 @@ private:
 	Drawable m_circleBorder;
 	Drawable m_topTriangle;
 	Drawable m_centerCircle;
+	Drawable m_button;
+	Drawable m_buttonText;
 
 	vector<Segment> m_segments;
 	int m_wheelAngle = 0;

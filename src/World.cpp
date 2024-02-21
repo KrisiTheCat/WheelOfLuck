@@ -1,5 +1,6 @@
 #include <iostream>
 #include <SDL.h>
+#include <SDL_ttf.h>
 #include "../include/World.h"
 #include <math.h>
 #include <ctime>
@@ -15,6 +16,7 @@ World::World() {
 }
 
 World::~World() {
+	SDL_DestroyTexture(m_button.texture);
 	SDL_DestroyTexture(m_circleBorder.texture);
 	SDL_DestroyTexture(m_centerCircle.texture);
 	SDL_DestroyTexture(m_topTriangle.texture);
@@ -29,6 +31,7 @@ World::~World() {
 	window = NULL;
 	renderer = NULL;
 	SDL_Quit();
+	TTF_Quit();
 }
 
 void World::init() {
@@ -52,6 +55,9 @@ void World::init() {
 		cout << "Error creating renderer: " << SDL_GetError() << endl;
 		return;
 	}
+	// TTF init
+	TTF_Init();
+
 
 	//init circle border
 	m_circleBorder.texture = initTexture("img\\circle.bmp");
@@ -73,6 +79,23 @@ void World::init() {
 	m_centerCircle.rect.y = 273;
 	m_centerCircle.rect.w = 114;
 	m_centerCircle.rect.h = 114;
+
+	//init button
+	m_button.texture = initTexture("img\\button.bmp");
+	m_button.rect.x = 139;
+	m_button.rect.y = 660;
+	m_button.rect.w = 382;
+	m_button.rect.h = 150;
+
+	TTF_Font* font = TTF_OpenFont("fonts\\anta.ttf", 125);
+	SDL_Color color = { 160, 160, 160 };
+	SDL_Surface* surface = TTF_RenderText_Solid(font,
+		"SPIN", color);
+	m_buttonText.texture = SDL_CreateTextureFromSurface(renderer, surface);
+	m_buttonText.rect.x = 169;
+	m_buttonText.rect.y = 670;
+	m_buttonText.rect.w = 322;
+	m_buttonText.rect.h = 130;
 
 	//adding segments
 	Drawable segmDrawable;
@@ -127,6 +150,8 @@ void World::draw() {
 	displayDrawable(m_circleBorder);
 	displayDrawable(m_topTriangle);
 	displayDrawable(m_centerCircle);
+	displayDrawable(m_button);
+	displayDrawable(m_buttonText);
 
 	SDL_RenderPresent(renderer);
 }
