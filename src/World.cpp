@@ -10,7 +10,7 @@ SDL_Window* window;
 SDL_Renderer* renderer;
 
 World::World() {
-	m_spinStarted = false;
+	m_spinning = false;
 	m_isRunning = true;
 	m_peaked = false;
 	m_acceleraction = 0;
@@ -105,10 +105,10 @@ void World::init() {
 	SDL_Color color = { 255, 255, 255 };
 	for (int i = 0; i < 10; i++) {
 		int pts;
-		switch (i % 2) {
-		case 0: segmDrawable.texture = initTexture("img\\dark_blue_segment2.bmp");	pts = 100;  break;
-		case 2: segmDrawable.texture = initTexture("img\\yellow_segment.bmp");		pts = 200;  break;
-		case 1: segmDrawable.texture = initTexture("img\\darkest_segment2.bmp");		pts = -500; break;
+		switch (i % 5) {
+		case 0: segmDrawable.texture = initTexture("img\\dark_blue_segment.bmp");	pts = 100;  break;
+		case 1: segmDrawable.texture = initTexture("img\\yellow_segment.bmp");		pts = 200;  break;
+		case 2: segmDrawable.texture = initTexture("img\\darkest_segment.bmp");		pts = -500; break;
 		case 3: segmDrawable.texture = initTexture("img\\blue_segment.bmp");		pts = 300;  break;
 		case 4: segmDrawable.texture = initTexture("img\\orange_segment.bmp");		pts = 400;  break;
 		}
@@ -134,13 +134,13 @@ void World::update() {
 			Uint32 buttons = SDL_GetMouseState(&x, &y);
 			if (checkCoordsInRect(m_button.rect, x, y)) {
 				initDisabledButton();
-				m_spinStarted = true;
+				m_spinning = true;
 			}
 			break;
 
 		}
 	}
-	if (m_spinStarted) {
+	if (m_spinning) {
 		if (!m_peaked) {
 			if (m_acceleraction >= rand() % 50 + 50) {
 				m_peaked = true;
@@ -148,6 +148,15 @@ void World::update() {
 			m_acceleraction += 2;
 		}
 		if (m_peaked && m_acceleraction > 0) m_acceleraction--;
+		if (m_acceleraction == 0) {
+			m_spinning = false;
+			for (Segment s : m_segments) {
+				if((s.m_angle+m_wheelAngle%360)>=360-18 || (s.m_angle + m_wheelAngle % 360) <= 18){
+					m_buttonText.texture = s.getDrawableText();
+					break;
+				}
+			}
+		}
 		m_wheelAngle += m_acceleraction;
 	}
 }

@@ -23,7 +23,7 @@ private:
 	int m_wheelAngle = 0;
 	int m_acceleraction = 0;
 	bool m_peaked;
-	bool m_spinStarted;
+	bool m_spinning;
 
 	void initEnabledButton();
 	void initDisabledButton();
