@@ -16,6 +16,7 @@ World::World() {
 	m_acceleraction = 0;
 }
 
+// Destroy all SDL parts to prevent memory leak
 World::~World() {
 	SDL_DestroyTexture(m_button.texture);
 	SDL_DestroyTexture(m_buttonText.texture);
@@ -37,22 +38,21 @@ World::~World() {
 	TTF_Quit();
 }
 
+//Initing SDL, TTF and all visible elements with textures and rects
 void World::init() {
-	srand(time(0));
+	srand(time(NULL));
 	//SDL INIT
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
 		cout << "Error initializing SDL: " << SDL_GetError() << endl;
 		system("pause");
 		return;
 	}
-
 	window = SDL_CreateWindow("Lucky wheel", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 660, 900, SDL_WINDOW_SHOWN);
 	if (!window) {
 		cout << "Error creating window: " << SDL_GetError() << endl;
 		system("pause");
 		return;
 	}
-
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 	if (!renderer) {
 		cout << "Error creating renderer: " << SDL_GetError() << endl;
@@ -124,22 +124,33 @@ void World::init() {
 
 }
 
-//update all things that change from frame to frame
+//Update all things that change from frame to frame
 void World::update() {
 	SDL_Event e;
+	//check for mouse click
 	while (SDL_PollEvent(&e)) {
 		switch (e.type) {
 		case SDL_MOUSEBUTTONDOWN:
+		{
 			int x, y;
 			Uint32 buttons = SDL_GetMouseState(&x, &y);
+			// if mouse is clicked in the rect of the button
 			if (checkCoordsInRect(m_button.rect, x, y)) {
 				initDisabledButton();
 				m_spinning = true;
 			}
 			break;
-
+		}
+		case SDL_WINDOWEVENT:
+		{
+			if (e.window.event == SDL_WINDOWEVENT_CLOSE) {   // Stop program
+				m_isRunning = false;
+			}
+			break;
+		}
 		}
 	}
+	// check if the wheel is supposed to be spinning
 	if (m_spinning) {
 		if (!m_peaked) {
 			if (m_acceleraction >= rand() % 50 + 50) {
@@ -161,13 +172,13 @@ void World::update() {
 	}
 }
 
+//check if Point(x;y) is inside of SDL_Rect
 bool World::checkCoordsInRect(SDL_Rect rect, int x, int y){
 	if (x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h) return true;
 	return false;
 }
 
-bool World::isRunning()
-{
+bool World::isRunning(){
 	return m_isRunning;
 }
 
@@ -177,10 +188,12 @@ void World::draw() {
 	SDL_SetRenderDrawColor(renderer, 170, 170, 170, 255);
 	SDL_RenderClear(renderer);
 
+	// Draw every segment first
 	for (Segment s : m_segments) {
 		displaySegment(s);
 	} 
 
+	// Draw all stationary elements
 	displayDrawable(m_circleBorder);
 	displayDrawable(m_topTriangle);
 	displayDrawable(m_centerCircle);
@@ -190,13 +203,14 @@ void World::draw() {
 	SDL_RenderPresent(renderer);
 }
 
-// the act of actually rendering the image
+// The act of actually rendering the image
 void World::displayDrawable(Drawable drawable) {
 	SDL_RenderCopy(renderer, drawable.texture, NULL, &drawable.rect);
 }
-// the act of actually rendering a segment
+// The act of actually rendering a segment
 void World::displaySegment(Segment segment) {
 	SDL_Rect rect = segment.getDrawable().rect; 
+
 	int actualAngle = m_wheelAngle + segment.m_angle;
 	double sinA = sin(actualAngle * PI / 180.0);
 	double cosA = cos(actualAngle * PI / 180.0);
@@ -206,6 +220,7 @@ void World::displaySegment(Segment segment) {
 	int actualAngle2 = m_wheelAngle + segment.m_angle - 90;
 	SDL_Rect rectText = { rect.x+rect.w/2-40,rect.y + rect.h / 2 - 15,80,30 };
 
+	//Draw the colored triangle
 	SDL_RenderCopyEx(renderer,
 		segment.getDrawable().texture,
 		NULL,
@@ -213,6 +228,7 @@ void World::displaySegment(Segment segment) {
 		actualAngle,
 		NULL,
 		SDL_FLIP_NONE);
+	// Display the text on top
 	SDL_RenderCopyEx(renderer,
 		segment.getDrawableText(),
 		NULL,
@@ -222,6 +238,7 @@ void World::displaySegment(Segment segment) {
 		SDL_FLIP_NONE);
 }
 
+// Initing graphics for the ENABLED version of the button
 void World::initEnabledButton(){
 	m_button.texture = initTexture("img\\en_button.bmp");
 	SDL_Color color = { 255, 223, 143 };
@@ -230,6 +247,7 @@ void World::initEnabledButton(){
 	m_buttonText.texture = SDL_CreateTextureFromSurface(renderer, surface);
 }
 
+// Initing graphics for the DISABLED version of the button
 void World::initDisabledButton(){
 	m_button.texture = initTexture("img\\dis_button.bmp");
 	SDL_Color color = { 170, 170, 170 };
@@ -238,7 +256,7 @@ void World::initDisabledButton(){
 	m_buttonText.texture = SDL_CreateTextureFromSurface(renderer, surface);
 }
 
-//getting texture from filename
+//Getting texture by filename
 SDL_Texture* World::initTexture(const char* filename){
 	SDL_Texture* texture;
 	SDL_Surface* buffer = SDL_LoadBMP(filename);
